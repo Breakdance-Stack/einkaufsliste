@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Einkaufsliste - Erstellen, sortieren & per WhatsApp teilen</title>
+  <meta name="description" content="Erstelle deine Einkaufsliste, sortiere Produkte per Drag & Drop und teile sie sofort per WhatsApp. Kostenlos, ohne Anmeldung.">
+  <meta name="theme-color" content="#1a7f4b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Einkaufsliste">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph -->
+  <meta property="og:url" content="https://breakdance-stack.github.io/einkaufsliste/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Einkaufsliste">
+  <meta property="og:description" content="Erstelle deine Einkaufsliste, sortiere Produkte per Drag & Drop und teile sie sofort per WhatsApp.">
+  <meta property="og:image" content="https://breakdance-stack.github.io/einkaufsliste/og-image.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="de_DE">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Einkaufsliste">
+  <meta name="twitter:description" content="Erstelle deine Einkaufsliste, sortiere Produkte per Drag & Drop und teile sie sofort per WhatsApp.">
+  <meta name="twitter:image" content="https://breakdance-stack.github.io/einkaufsliste/og-image.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #1a7f4b;
+      --green-dark: #145f38;
+      --green-light: #e8f5ee;
+      --red: #d9534f;
+      --gray-100: #f7f8fa;
+      --gray-200: #e9ecef;
+      --gray-400: #adb5bd;
+      --gray-600: #6c757d;
+      --gray-800: #343a40;
+      --radius: 12px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-800);
+      min-height: 100dvh;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    header {
+      background: var(--green);
+      color: white;
+      padding: 20px 16px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* Input area */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+      background: white;
+    }
+
+    .input-row input:focus {
+      border-color: var(--green);
+    }
+
+    .input-row .qty-input {
+      width: 70px;
+      flex: none;
+      text-align: center;
+    }
+
+    .btn {
+      padding: 12px 18px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: scale(0.96); }
+
+    .btn-add {
+      background: var(--green);
+      color: white;
+    }
+
+    .btn-add:hover { background: var(--green-dark); }
+
+    /* List */
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .list-header h2 {
+      font-size: 1.1rem;
+      color: var(--gray-600);
+      font-weight: 600;
+    }
+
+    .item-count {
+      font-size: 0.85rem;
+      color: var(--gray-400);
+    }
+
+    #shopping-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: white;
+      padding: 14px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+      touch-action: manipulation;
+      position: relative;
+    }
+
+    .list-item.checked {
+      opacity: 0.5;
+    }
+
+    .list-item.checked .item-name {
+      text-decoration: line-through;
+    }
+
+    .list-item .drag-handle {
+      cursor: grab;
+      color: var(--gray-400);
+      font-size: 1.2rem;
+      padding: 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .list-item .item-check {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--gray-200);
+      border-radius: 6px;
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .list-item.checked .item-check {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .list-item.checked .item-check::after {
+      content: '';
+      width: 6px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2.5px 2.5px 0;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+
+    .item-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-name {
+      font-weight: 500;
+      font-size: 1rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .item-qty {
+      font-size: 0.8rem;
+      color: var(--gray-600);
+      margin-top: 2px;
+    }
+
+    .item-delete {
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 6px;
+      font-size: 1.2rem;
+      line-height: 1;
+      border-radius: 8px;
+      transition: color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .item-delete:hover {
+      color: var(--red);
+      background: #fde8e8;
+    }
+
+    /* Drag states */
+    .list-item.dragging {
+      opacity: 0.4;
+      transform: scale(0.97);
+    }
+
+    .list-item.drag-over-above {
+      box-shadow: 0 -3px 0 0 var(--green), var(--shadow);
+    }
+
+    .list-item.drag-over-below {
+      box-shadow: 0 3px 0 0 var(--green), var(--shadow);
+    }
+
+    .list-item.long-press-active {
+      transform: scale(1.03);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      z-index: 50;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--gray-400);
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 1rem;
+    }
+
+    /* Share section */
+    .share-section {
+      margin-top: 24px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-share {
+      flex: 1;
+      background: #25D366;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-share:hover { background: #1da851; }
+
+    .btn-share svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .btn-copy {
+      background: var(--gray-200);
+      color: var(--gray-800);
+    }
+
+    .btn-copy:hover { background: var(--gray-400); color: white; }
+
+    .btn-clear {
+      background: none;
+      border: 2px solid var(--gray-200);
+      color: var(--gray-600);
+      margin-top: 8px;
+      width: 100%;
+      font-size: 0.9rem;
+      padding: 10px;
+    }
+
+    .btn-clear:hover { border-color: var(--red); color: var(--red); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--gray-800);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Shared list banner */
+    .shared-banner {
+      background: var(--green-light);
+      border: 2px solid var(--green);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--green-dark);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Einkaufsliste</h1>
+</header>
+
+<div class="container">
+  <div id="shared-banner" class="shared-banner" style="display:none">
+    Diese Liste wurde mit dir geteilt!
+  </div>
+
+  <div class="input-row">
+    <input type="text" id="item-input" placeholder="Produkt hinzufugen..." autocomplete="off">
+    <input type="text" id="qty-input" class="qty-input" placeholder="Menge" autocomplete="off">
+    <button class="btn btn-add" id="add-btn" aria-label="Hinzufugen">+</button>
+  </div>
+
+  <div class="list-header">
+    <h2>Meine Liste</h2>
+    <span class="item-count" id="item-count"></span>
+  </div>
+
+  <ul id="shopping-list"></ul>
+
+  <div id="empty-state" class="empty-state">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="14" y="10" width="36" height="46" rx="4"/>
+      <line x1="22" y1="24" x2="42" y2="24"/>
+      <line x1="22" y1="34" x2="38" y2="34"/>
+      <line x1="22" y1="44" x2="34" y2="44"/>
+    </svg>
+    <p>Noch keine Produkte. Fang an!</p>
+  </div>
+
+  <div class="share-section" id="share-section" style="display:none">
+    <button class="btn btn-share" id="share-btn">
+      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Per WhatsApp teilen
+    </button>
+    <button class="btn btn-copy" id="copy-btn" aria-label="Link kopieren">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    </button>
+  </div>
+
+  <button class="btn btn-clear" id="clear-btn" style="display:none">Liste leeren</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  const listEl = document.getElementById('shopping-list');
+  const itemInput = document.getElementById('item-input');
+  const qtyInput = document.getElementById('qty-input');
+  const addBtn = document.getElementById('add-btn');
+  const shareBtn = document.getElementById('share-btn');
+  const copyBtn = document.getElementById('copy-btn');
+  const clearBtn = document.getElementById('clear-btn');
+  const emptyState = document.getElementById('empty-state');
+  const shareSection = document.getElementById('share-section');
+  const itemCountEl = document.getElementById('item-count');
+  const sharedBanner = document.getElementById('shared-banner');
+  const toastEl = document.getElementById('toast');
+
+  let items = [];
+
+  // Load from URL params or localStorage
+  function init() {
+    const params = new URLSearchParams(window.location.search);
+    const shared = params.get('list');
+    if (shared) {
+      try {
+        items = JSON.parse(decodeURIComponent(shared));
+        sharedBanner.style.display = 'block';
+        // Also save to local so user can edit
+        saveLocal();
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+      } catch(e) {
+        items = loadLocal();
+      }
+    } else {
+      items = loadLocal();
+    }
+    render();
+  }
+
+  function loadLocal() {
+    try {
+      return JSON.parse(localStorage.getItem('einkaufsliste') || '[]');
+    } catch(e) { return []; }
+  }
+
+  function saveLocal() {
+    localStorage.setItem('einkaufsliste', JSON.stringify(items));
+  }
+
+  function render() {
+    listEl.innerHTML = '';
+    items.forEach((item, i) => {
+      const li = document.createElement('li');
+      li.className = 'list-item' + (item.checked ? ' checked' : '');
+      li.dataset.index = i;
+      li.draggable = false; // we handle via long press
+      li.innerHTML = `
+        <span class="drag-handle">&#9776;</span>
+        <div class="item-check" data-action="check"></div>
+        <div class="item-details">
+          <div class="item-name">${esc(item.name)}</div>
+          ${item.qty ? `<div class="item-qty">${esc(item.qty)}</div>` : ''}
+        </div>
+        <button class="item-delete" data-action="delete" aria-label="Loschen">&times;</button>
+      `;
+      listEl.appendChild(li);
+    });
+    emptyState.style.display = items.length ? 'none' : 'block';
+    shareSection.style.display = items.length ? 'flex' : 'none';
+    clearBtn.style.display = items.length ? 'block' : 'none';
+    itemCountEl.textContent = items.length ? items.length + (items.length === 1 ? ' Produkt' : ' Produkte') : '';
+  }
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 2000);
+  }
+
+  // Add item
+  function addItem() {
+    const name = itemInput.value.trim();
+    if (!name) return;
+    items.push({ name, qty: qtyInput.value.trim(), checked: false });
+    itemInput.value = '';
+    qtyInput.value = '';
+    itemInput.focus();
+    saveLocal();
+    render();
+  }
+
+  addBtn.addEventListener('click', addItem);
+  itemInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addItem(); }});
+  qtyInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addItem(); }});
+
+  // List actions (check, delete)
+  listEl.addEventListener('click', e => {
+    const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
+    const li = e.target.closest('.list-item');
+    if (!li) return;
+    const idx = parseInt(li.dataset.index);
+
+    if (action === 'check') {
+      items[idx].checked = !items[idx].checked;
+      saveLocal();
+      render();
+    } else if (action === 'delete') {
+      items.splice(idx, 1);
+      saveLocal();
+      render();
+    }
+  });
+
+  // Clear
+  clearBtn.addEventListener('click', () => {
+    if (confirm('Ganze Liste leeren?')) {
+      items = [];
+      saveLocal();
+      render();
+    }
+  });
+
+  // Share
+  function buildShareURL() {
+    const base = window.location.origin + window.location.pathname;
+    const data = encodeURIComponent(JSON.stringify(items));
+    return base + '?list=' + data;
+  }
+
+  function buildShareText() {
+    let text = 'Einkaufsliste:\n';
+    items.forEach(item => {
+      text += `- ${item.name}${item.qty ? ' (' + item.qty + ')' : ''}\n`;
+    });
+    return text;
+  }
+
+  shareBtn.addEventListener('click', () => {
+    const url = buildShareURL();
+    const text = buildShareText() + '\n' + url;
+    const waURL = 'https://wa.me/?text=' + encodeURIComponent(text);
+    window.open(waURL, '_blank');
+  });
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(buildShareURL()).then(() => {
+      showToast('Link kopiert!');
+    }).catch(() => {
+      showToast('Kopieren fehlgeschlagen');
+    });
+  });
+
+  // ========== Drag & Drop with Long Press ==========
+  let dragState = null;
+  let longPressTimer = null;
+  const LONG_PRESS_MS = 400;
+
+  function getItemIndex(el) {
+    const li = el.closest('.list-item');
+    return li ? parseInt(li.dataset.index) : -1;
+  }
+
+  function clearDragClasses() {
+    listEl.querySelectorAll('.list-item').forEach(el => {
+      el.classList.remove('drag-over-above', 'drag-over-below', 'long-press-active', 'dragging');
+    });
+  }
+
+  // Touch events for mobile drag
+  listEl.addEventListener('touchstart', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+
+    const li = handle.closest('.list-item');
+    const idx = parseInt(li.dataset.index);
+
+    longPressTimer = setTimeout(() => {
+      dragState = { fromIndex: idx, currentIndex: idx };
+      li.classList.add('long-press-active');
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  listEl.addEventListener('touchmove', e => {
+    if (longPressTimer && !dragState) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+      return;
+    }
+    if (!dragState) return;
+    e.preventDefault();
+
+    const touch = e.touches[0];
+    const elBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!elBelow) return;
+
+    const li = elBelow.closest('.list-item');
+    if (!li) return;
+    const overIdx = parseInt(li.dataset.index);
+
+    clearDragClasses();
+    listEl.children[dragState.fromIndex]?.classList.add('dragging');
+
+    if (overIdx < dragState.fromIndex) {
+      li.classList.add('drag-over-above');
+    } else if (overIdx > dragState.fromIndex) {
+      li.classList.add('drag-over-below');
+    }
+
+    dragState.currentIndex = overIdx;
+  }, { passive: false });
+
+  listEl.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+
+    if (dragState && dragState.fromIndex !== dragState.currentIndex) {
+      const [moved] = items.splice(dragState.fromIndex, 1);
+      items.splice(dragState.currentIndex, 0, moved);
+      saveLocal();
+    }
+
+    dragState = null;
+    clearDragClasses();
+    render();
+  });
+
+  listEl.addEventListener('touchcancel', () => {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    dragState = null;
+    clearDragClasses();
+  });
+
+  // Mouse drag (desktop) - also with long press on handle
+  listEl.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    e.preventDefault();
+
+    const li = handle.closest('.list-item');
+    const idx = parseInt(li.dataset.index);
+
+    longPressTimer = setTimeout(() => {
+      dragState = { fromIndex: idx, currentIndex: idx };
+      li.classList.add('long-press-active');
+
+      const onMouseMove = ev => {
+        if (!dragState) return;
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        if (!el) return;
+        const targetLi = el.closest('.list-item');
+        if (!targetLi) return;
+        const overIdx = parseInt(targetLi.dataset.index);
+
+        clearDragClasses();
+        listEl.children[dragState.fromIndex]?.classList.add('dragging');
+        if (overIdx < dragState.fromIndex) {
+          targetLi.classList.add('drag-over-above');
+        } else if (overIdx > dragState.fromIndex) {
+          targetLi.classList.add('drag-over-below');
+        }
+        dragState.currentIndex = overIdx;
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+
+        if (dragState && dragState.fromIndex !== dragState.currentIndex) {
+          const [moved] = items.splice(dragState.fromIndex, 1);
+          items.splice(dragState.currentIndex, 0, moved);
+          saveLocal();
+        }
+        dragState = null;
+        clearDragClasses();
+        render();
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    }, LONG_PRESS_MS);
+  });
+
+  listEl.addEventListener('mouseup', () => {
+    if (longPressTimer && !dragState) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  });
+
+  init();
+})();
+</script>
+
+</body>
+</html>
